@@ -5,9 +5,9 @@ import (
 	"ufc_stats_api/internal/models"
 )
 
-func GetAllFighters() ([]models.Fighter, error) {
+func GetAllFighters(databaseURL string) ([]models.Fighter, error) {
 	ctx := context.Background()
-	conn, err := Connect(ctx)
+	conn, err := Connect(ctx, databaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +29,9 @@ func GetAllFighters() ([]models.Fighter, error) {
 	}
 	return fighters, nil
 }
-func InsertFighter(f models.Fighter) error {
+func InsertFighter(f models.Fighter, databaseURL string) error {
 	ctx := context.Background()
-	conn, err := Connect(ctx)
+	conn, err := Connect(ctx, databaseURL)
 	if err != nil {
 		return err
 	}

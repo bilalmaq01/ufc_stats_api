@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"ufc_stats_api/internal/config"
 	"ufc_stats_api/internal/crawler"
 	"ufc_stats_api/internal/handlers"
 
@@ -10,8 +11,12 @@ import (
 )
 
 func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/fighters", handlers.GetAllFighters)
+	mux.HandleFunc("/fighters", handlers.GetAllFighters(cfg.DatabaseURL))
 	c := colly.NewCollector(colly.UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"))
 	c.OnRequest(func(r *colly.Request) {
 		r.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
@@ -22,6 +27,6 @@ func main() {
 	})
 	crawler.FighterCrawler(c)
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
 
 }
