@@ -1,0 +1,21 @@
+# Local AI/tooling folders
+.claude/
+.codex/
+.agents/
+
+# JetBrains / GoLand
+.idea/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Go build/test output
+bin/
+*.test
+*.out
+coverage.out
+
+# OS files
+.DS_Store
