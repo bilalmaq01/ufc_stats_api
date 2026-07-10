@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"ufc_stats_api/storage"
+	"ufc_stats_api/internal/storage"
 )
 
 func GetAllFighters(w http.ResponseWriter, r *http.Request) {

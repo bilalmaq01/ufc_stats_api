@@ -3,8 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
-	"ufc_stats_api/crawler"
-	"ufc_stats_api/handlers"
+	"ufc_stats_api/internal/crawler"
+	"ufc_stats_api/internal/handlers"
 
 	"github.com/gocolly/colly/v2"
 )

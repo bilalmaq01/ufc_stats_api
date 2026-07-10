@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"ufc_stats_api/models"
+	"ufc_stats_api/internal/models"
 )
 
 func GetAllFighters() ([]models.Fighter, error) {
