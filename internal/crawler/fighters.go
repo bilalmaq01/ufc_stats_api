@@ -1,10 +1,12 @@
 package crawler
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
+	"ufc_stats_api/internal/models"
 
 	"github.com/gocolly/colly/v2"
 )
@@ -12,73 +14,19 @@ import (
 func FighterCrawler(c *colly.Collector) {
 
 	c.OnHTML("tr.b-statistics__table-row", func(e *colly.HTMLElement) {
-		//These are pointers because the website im scraping from ufcstats.com some fighters don't have all of these
-		var nickname *string
-		var height *string
-		var weight *string
-		var reach_in *string
 
-		//Combine first and last name and make it a single name
-		name := fmt.Sprintf("%s %s", e.ChildText("td:nth-child(1)"), e.ChildText("td:nth-child(2)"))
-
-		fmt.Println()
-		fmt.Println(name)
-
-		//Not all fighters have a nickname
-		n := e.ChildText("td:nth-child(3)")
-		if len(n) == 0 {
-			nickname = nil
-		} else {
-			nickname = &n
+		fighter, err := parseFighterRow(e)
+		if err != nil {
+			log.Println(err)
+			return
 		}
-		if nickname != nil {
-			fmt.Println(n)
+		b, err := json.MarshalIndent(fighter, "", "  ")
+		if err != nil {
+			log.Println(err)
+			return
 		}
 
-		h := e.ChildText("td:nth-child(4)")
-		if h == "--" {
-			height = nil
-		} else {
-			height = &h
-		}
-		if height != nil {
-			fmt.Println("Height:", h)
-		}
-
-		w := e.ChildText("td:nth-child(5)")
-		if w == "--" {
-			weight = nil
-		} else {
-			weight = &w
-		}
-		if weight != nil {
-			fmt.Println("Weight Class:", w)
-		}
-		r := e.ChildText("td:nth-child(6)")
-
-		if r == "--" {
-			reach_in = nil
-		} else {
-			reach_in = &r
-		}
-		r = strings.TrimSuffix(r, "\"")
-		if r != "--" && r != "" {
-			int_r, err := strconv.ParseFloat(r, 8)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if reach_in != nil {
-				fmt.Println("Reach:", int_r)
-			}
-		}
-
-		wins := e.ChildText("td:nth-child(8)")
-		fmt.Println("Wins:", wins)
-		losses := e.ChildText("td:nth-child(9)")
-		fmt.Println("Losses:", losses)
-		draws := e.ChildText("td:nth-child(10)")
-		fmt.Println("Draws:", draws)
-
+		b = b
 	})
 
 	for _, letter := range "abcdefghijklmnopqrstuvwxyz" {
@@ -88,4 +36,60 @@ func FighterCrawler(c *colly.Collector) {
 		fmt.Println(link)
 	}
 
+}
+func parseFighterRow(e *colly.HTMLElement) (models.Fighter, error) {
+	var fighter models.Fighter
+	var err error
+	firstName := strings.TrimSpace(e.ChildText("td:nth-child(1)"))
+	lastName := strings.TrimSpace(e.ChildText("td:nth-child(2)"))
+
+	if firstName == "" || lastName == "" {
+		return models.Fighter{}, nil
+	}
+	fighter.Name = fmt.Sprintf("%s %s", firstName, lastName)
+
+	n := e.ChildText("td:nth-child(3)")
+	if n != "" {
+		fighter.Nickname = &n
+	}
+
+	h := e.ChildText("td:nth-child(4)")
+	if h != "--" {
+		h = strings.TrimSpace(h)
+		h = strings.TrimSuffix(h, "\"")
+		fighter.Height = &h
+	}
+
+	w := e.ChildText("td:nth-child(5)")
+	if w != "--" {
+		fighter.WeightClass = &w
+	}
+	r := e.ChildText("td:nth-child(6)")
+	r = strings.TrimSpace(r)
+	r = strings.TrimSuffix(r, "\"")
+	if r != "--" {
+		ReachIn, err := strconv.ParseFloat(r, 16)
+		if err != nil {
+			return models.Fighter{}, err
+		}
+		fighter.ReachIn = int(ReachIn)
+
+	}
+	Wins := e.ChildText("td:nth-child(8)")
+	fighter.Wins, err = strconv.Atoi(Wins)
+	if err != nil {
+		return models.Fighter{}, err
+	}
+	Losses := e.ChildText("td:nth-child(9)")
+	fighter.Losses, err = strconv.Atoi(Losses)
+	if err != nil {
+		return models.Fighter{}, err
+	}
+	Draws := e.ChildText("td:nth-child(10)")
+	fighter.Draws, err = strconv.Atoi(Draws)
+	if err != nil {
+		return models.Fighter{}, err
+	}
+
+	return fighter, nil
 }
