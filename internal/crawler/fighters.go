@@ -10,11 +10,12 @@ import (
 	"ufc_stats_api/internal/storage"
 
 	"github.com/gocolly/colly/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 var errSkipRow = errors.New("skip row")
 
-func FighterCrawler(c *colly.Collector, databaseURL string) {
+func FighterCrawler(c *colly.Collector, pool *pgxpool.Pool) {
 
 	c.OnHTML("tr.b-statistics__table-row", func(e *colly.HTMLElement) {
 
@@ -26,7 +27,7 @@ func FighterCrawler(c *colly.Collector, databaseURL string) {
 			log.Println(err)
 			return
 		}
-		err = storage.InsertFighter(fighter, databaseURL)
+		err = storage.InsertFighter(fighter, pool)
 		if err != nil {
 			log.Println(err)
 			return
