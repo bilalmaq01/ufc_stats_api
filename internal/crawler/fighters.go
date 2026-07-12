@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -11,12 +12,17 @@ import (
 	"github.com/gocolly/colly/v2"
 )
 
+var errSkipRow = errors.New("skip row")
+
 func FighterCrawler(c *colly.Collector) {
 
 	c.OnHTML("tr.b-statistics__table-row", func(e *colly.HTMLElement) {
 
 		fighter, err := parseFighterRow(e)
 		if err != nil {
+			if err == errSkipRow {
+				return
+			}
 			log.Println(err)
 			return
 		}
@@ -37,6 +43,7 @@ func FighterCrawler(c *colly.Collector) {
 	}
 
 }
+
 func parseFighterRow(e *colly.HTMLElement) (models.Fighter, error) {
 	var fighter models.Fighter
 	var err error
@@ -44,7 +51,7 @@ func parseFighterRow(e *colly.HTMLElement) (models.Fighter, error) {
 	lastName := strings.TrimSpace(e.ChildText("td:nth-child(2)"))
 
 	if firstName == "" || lastName == "" {
-		return models.Fighter{}, nil
+		return models.Fighter{}, errSkipRow
 	}
 	fighter.Name = fmt.Sprintf("%s %s", firstName, lastName)
 
