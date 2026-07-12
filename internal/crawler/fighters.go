@@ -1,20 +1,20 @@
 package crawler
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
 	"ufc_stats_api/internal/models"
+	"ufc_stats_api/internal/storage"
 
 	"github.com/gocolly/colly/v2"
 )
 
 var errSkipRow = errors.New("skip row")
 
-func FighterCrawler(c *colly.Collector) {
+func FighterCrawler(c *colly.Collector, databaseURL string) {
 
 	c.OnHTML("tr.b-statistics__table-row", func(e *colly.HTMLElement) {
 
@@ -26,13 +26,11 @@ func FighterCrawler(c *colly.Collector) {
 			log.Println(err)
 			return
 		}
-		b, err := json.MarshalIndent(fighter, "", "  ")
+		err = storage.InsertFighter(fighter, databaseURL)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		b = b
 	})
 
 	for _, letter := range "abcdefghijklmnopqrstuvwxyz" {
