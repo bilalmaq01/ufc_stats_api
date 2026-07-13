@@ -8,9 +8,11 @@ import (
 
 	"github.com/gocolly/colly/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -26,7 +28,7 @@ func main() {
 		r.Headers.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
 		r.Headers.Set("Accept-Language", "en-US,en;q=0.9")
 		r.Headers.Set("Accept-Encoding", "gzip, deflate")
-		r.Headers.Set("Cookie", "_fmc=1783440808.984b83b12b4ac36dde01d6f661552ec215ca401052a4c91d2405a16f18a799cd")
+		r.Headers.Set("Cookie", cfg.Cookie)
 		r.Headers.Set("Upgrade-Insecure-Requests", "1")
 	})
 	crawler.FighterCrawler(c, pool)

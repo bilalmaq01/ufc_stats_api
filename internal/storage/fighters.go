@@ -44,3 +44,25 @@ func InsertFighter(f models.Fighter, pool *pgxpool.Pool) error {
 	}
 	return nil
 }
+func GetFighterByname(name string, pool *pgxpool.Pool) ([]models.Fighter, error) {
+	ctx := context.Background()
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return []models.Fighter{}, err
+	}
+	defer conn.Release()
+	rows, err := conn.Query(ctx, "SELECT id, name, nickname, height , weight_class, reach_in, wins, losses, draws FROM fighters WHERE LOWER(name) LIKE LOWER($1)", "%"+name+"%")
+	if err != nil {
+		return []models.Fighter{}, err
+	}
+	var fighters []models.Fighter
+	for rows.Next() {
+		var f models.Fighter
+		err := rows.Scan(&f.ID, &f.Name, &f.Nickname, &f.Height, &f.WeightClass, &f.ReachIn, &f.Wins, &f.Losses, &f.Draws)
+		if err != nil {
+			return nil, err
+		}
+		fighters = append(fighters, f)
+	}
+	return fighters, nil
+}

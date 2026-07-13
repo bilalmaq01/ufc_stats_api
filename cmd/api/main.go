@@ -23,6 +23,7 @@ func main() {
 	defer pool.Close()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/fighters", handlers.GetAllFighters(pool))
+	mux.HandleFunc("/fighters/search", handlers.SearchFightersByName(pool))
 
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
 
