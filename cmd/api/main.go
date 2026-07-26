@@ -8,9 +8,11 @@ import (
 	"ufc_stats_api/internal/handlers"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	godotenv.Load()
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatal(err)
@@ -21,6 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 	defer pool.Close()
+	//api endpoints and how to handle request using a multiplexer or a mux for short
 	mux := http.NewServeMux()
 	mux.HandleFunc("/fighters", handlers.GetAllFighters(pool))
 	mux.HandleFunc("/fighters/search", handlers.SearchFightersByName(pool))

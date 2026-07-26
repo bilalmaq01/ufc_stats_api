@@ -1,11 +1,10 @@
 package crawler
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
+	"time"
 	"ufc_stats_api/internal/models"
 	"ufc_stats_api/internal/storage"
 
@@ -13,25 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var errSkipRow = errors.New("skip row")
-
 func FighterCrawler(c *colly.Collector, pool *pgxpool.Pool) {
 
-	c.OnHTML("tr.b-statistics__table-row", func(e *colly.HTMLElement) {
+	c.OnHTML("tr.b-statistics__table-row td:first-child a", func(e *colly.HTMLElement) {
+		link := e.Attr("href")
+		if link != "" {
+			c.Visit(link)
+		}
+	})
 
-		fighter, err := parseFighterRow(e)
-		if err != nil {
-			if err == errSkipRow {
-				return
-			}
-			log.Println(err)
-			return
-		}
-		err = storage.InsertFighter(fighter, pool)
-		if err != nil {
-			log.Println(err)
-			return
-		}
+	c.OnHTML("h2.b-content__title", func(e *colly.HTMLElement) {
+		fighter := parseFighterDetail(e)
+		fighter.URL = e.Request.URL.String()
+		storage.InsertFighter(fighter, pool)
 	})
 
 	for _, letter := range "abcdefghijklmnopqrstuvwxyz" {
@@ -42,60 +35,114 @@ func FighterCrawler(c *colly.Collector, pool *pgxpool.Pool) {
 	}
 
 }
-
-func parseFighterRow(e *colly.HTMLElement) (models.Fighter, error) {
+func parseFighterDetail(e *colly.HTMLElement) models.Fighter {
 	var fighter models.Fighter
-	var err error
-	firstName := strings.TrimSpace(e.ChildText("td:nth-child(1)"))
-	lastName := strings.TrimSpace(e.ChildText("td:nth-child(2)"))
 
-	if firstName == "" || lastName == "" {
-		return models.Fighter{}, errSkipRow
+	name := strings.TrimSpace(e.ChildText("span.b-content__title-highlight"))
+	fighter.Name = name
+	record := strings.TrimSpace(e.ChildText("span.b-content__title-record"))
+	record = strings.TrimPrefix(record, "Record: ")
+	parts := strings.Split(record, "-")
+	if len(parts) == 3 {
+		fighter.Wins, _ = strconv.Atoi(parts[0])
+		fighter.Losses, _ = strconv.Atoi(parts[1])
+		fighter.Draws, _ = strconv.Atoi(parts[2])
 	}
-	fighter.Name = fmt.Sprintf("%s %s", firstName, lastName)
+	nickname := strings.TrimSpace(e.DOM.Parent().Find("p.b-content__Nickname").Text())
+	if nickname != "" {
+		fighter.Nickname = &nickname
+	}
+	statsBox := e.DOM.Parent().Find("div.b-list__info-box.b-list__info-box_style_small-width")
 
-	n := e.ChildText("td:nth-child(3)")
-	if n != "" {
-		fighter.Nickname = &n
-	}
-
-	h := e.ChildText("td:nth-child(4)")
-	if h != "--" {
-		h = strings.TrimSpace(h)
-		h = strings.TrimSuffix(h, "\"")
-		fighter.Height = &h
-	}
-
-	w := e.ChildText("td:nth-child(5)")
-	if w != "--" {
-		fighter.WeightClass = &w
-	}
-	r := e.ChildText("td:nth-child(6)")
-	r = strings.TrimSpace(r)
-	r = strings.TrimSuffix(r, "\"")
-	if r != "--" {
-		ReachIn, err := strconv.ParseFloat(r, 16)
-		if err != nil {
-			return models.Fighter{}, err
+	height := strings.TrimSpace(statsBox.Find("li:nth-child(1)").Text())
+	fields := strings.Fields(height)
+	if len(fields) > 1 {
+		heightVal := strings.TrimSpace(strings.Join(fields[1:], " "))
+		if heightVal != "--" {
+			fighter.Height = &heightVal
 		}
-		fighter.ReachIn = int(ReachIn)
-
 	}
-	Wins := e.ChildText("td:nth-child(8)")
-	fighter.Wins, err = strconv.Atoi(Wins)
-	if err != nil {
-		return models.Fighter{}, err
+	weight := strings.TrimSpace(statsBox.Find("li:nth-child(2)").Text())
+	fields = strings.Fields(weight)
+	if len(fields) >= 1 {
+		weightVal := fields[1]
+		if weightVal != "" && weightVal != "--" {
+			fighter.WeightClass = &weightVal
+		}
 	}
-	Losses := e.ChildText("td:nth-child(9)")
-	fighter.Losses, err = strconv.Atoi(Losses)
-	if err != nil {
-		return models.Fighter{}, err
-	}
-	Draws := e.ChildText("td:nth-child(10)")
-	fighter.Draws, err = strconv.Atoi(Draws)
-	if err != nil {
-		return models.Fighter{}, err
+	reach := strings.TrimSpace(statsBox.Find("li:nth-child(3)").Text())
+	fields = strings.Fields(reach)
+	if len(fields) > 1 {
+		reachVal := fields[len(fields)-1]
+		reachVal = strings.TrimSuffix(reachVal, "\"")
+		fighter.ReachIn, _ = strconv.Atoi(reachVal)
 	}
 
-	return fighter, nil
+	stance := statsBox.Find("li:nth-child(4)").Text()
+	fields = strings.Fields(stance)
+	if len(fields) > 1 {
+		stanceVal := fields[len(fields)-1]
+		fighter.Stance = &stanceVal
+	}
+
+	dob := strings.TrimSpace(statsBox.Find("li:nth-child(5)").Text())
+	fields = strings.Fields(dob)
+	if len(fields) > 1 {
+		if fields[len(fields)-1] != "--" {
+			fields = strings.Fields(dob)
+			dobVal := fields[len(fields)-3:]
+			dob = strings.Join(dobVal, " ")
+			t, err := time.Parse("Jan 02, 2006", dob)
+			if err == nil {
+				fighter.DOB = &t
+			}
+		}
+	}
+
+	fightstats := e.DOM.Parent().Find("div.b-list__info-box-left div.b-list__info-box-left ul.b-list__box-list")
+
+	slpm := strings.Fields(fightstats.Find("li:nth-child(1)").Text())
+	if len(slpm) > 1 {
+		fighter.SLPM, _ = strconv.ParseFloat(slpm[len(slpm)-1], 8)
+	}
+
+	strAcc := strings.Fields(fightstats.Find("li:nth-child(2)").Text())
+	if len(strAcc) > 1 {
+		strAccVal := strings.TrimSuffix(strAcc[len(strAcc)-1], "%")
+		fighter.StrAcc, _ = strconv.Atoi(strAccVal)
+	}
+
+	sapm := strings.Fields(fightstats.Find("li:nth-child(3)").Text())
+	if len(sapm) > 1 {
+		fighter.SAPM, _ = strconv.ParseFloat(sapm[len(sapm)-1], 8)
+	}
+
+	strDef := strings.Fields(fightstats.Find("li:nth-child(4)").Text())
+	if len(strDef) > 1 {
+		strDefVal := strings.TrimSuffix(strDef[len(strDef)-1], "%")
+		fighter.StrDef, _ = strconv.Atoi(strDefVal)
+	}
+
+	substats := e.DOM.Parent().Find("div.b-list__info-box-right.b-list__info-box_style-margin-right ul.b-list__box-list")
+	tdAvg := strings.Fields(substats.Find("li:nth-child(2)").Text())
+	if len(tdAvg) > 1 {
+		fighter.TdAvg, _ = strconv.ParseFloat(tdAvg[len(tdAvg)-1], 8)
+	}
+	tdAcc := strings.Fields(substats.Find("li:nth-child(3)").Text())
+	if len(tdAcc) > 1 {
+		tdAccVal := strings.TrimSuffix(tdAcc[len(tdAcc)-1], "%")
+		fighter.TdAcc, _ = strconv.Atoi(tdAccVal)
+	}
+
+	tdDef := strings.Fields(substats.Find("li:nth-child(4)").Text())
+	if len(tdDef) > 1 {
+		tdDefVal := strings.TrimSuffix(tdDef[len(tdDef)-1], "%")
+		fighter.TdDef, _ = strconv.Atoi(tdDefVal)
+	}
+
+	subAvg := strings.Fields(substats.Find("li:nth-child(5)").Text())
+	if len(subAvg) > 1 {
+		fighter.SubAvg, _ = strconv.ParseFloat(subAvg[len(subAvg)-1], 8)
+	}
+	return fighter
 }
