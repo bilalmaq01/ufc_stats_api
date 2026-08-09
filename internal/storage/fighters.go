@@ -29,6 +29,9 @@ func GetAllFighters(pool *pgxpool.Pool) ([]models.Fighter, error) {
 		}
 		fighters = append(fighters, f)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
 	return fighters, nil
 }
 func InsertFighter(f models.Fighter, pool *pgxpool.Pool) error {
@@ -57,7 +60,7 @@ func GetFighterByname(name string, pool *pgxpool.Pool) ([]models.Fighter, error)
 	if err != nil {
 		return []models.Fighter{}, err
 	}
-
+	defer rows.Close()
 	var fighters []models.Fighter
 	//Scans next rows for more fighters
 	for rows.Next() {
@@ -67,6 +70,9 @@ func GetFighterByname(name string, pool *pgxpool.Pool) ([]models.Fighter, error)
 			return nil, err
 		}
 		fighters = append(fighters, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	return fighters, nil
 }

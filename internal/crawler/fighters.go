@@ -2,6 +2,7 @@ package crawler
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -24,7 +25,9 @@ func FighterCrawler(c *colly.Collector, pool *pgxpool.Pool) {
 	c.OnHTML("h2.b-content__title", func(e *colly.HTMLElement) {
 		fighter := parseFighterDetail(e)
 		fighter.URL = e.Request.URL.String()
-		storage.InsertFighter(fighter, pool)
+		if err := storage.InsertFighter(fighter, pool); err != nil {
+			log.Printf("failed to insert fighter %s (%s): %v", fighter.Name, fighter.URL, err)
+		}
 	})
 
 	for _, letter := range "abcdefghijklmnopqrstuvwxyz" {
@@ -103,7 +106,7 @@ func parseFighterDetail(e *colly.HTMLElement) models.Fighter {
 
 	slpm := strings.Fields(fightstats.Find("li:nth-child(1)").Text())
 	if len(slpm) > 1 {
-		fighter.SLPM, _ = strconv.ParseFloat(slpm[len(slpm)-1], 8)
+		fighter.SLPM, _ = strconv.ParseFloat(slpm[len(slpm)-1], 64)
 	}
 
 	strAcc := strings.Fields(fightstats.Find("li:nth-child(2)").Text())
@@ -114,7 +117,7 @@ func parseFighterDetail(e *colly.HTMLElement) models.Fighter {
 
 	sapm := strings.Fields(fightstats.Find("li:nth-child(3)").Text())
 	if len(sapm) > 1 {
-		fighter.SAPM, _ = strconv.ParseFloat(sapm[len(sapm)-1], 8)
+		fighter.SAPM, _ = strconv.ParseFloat(sapm[len(sapm)-1], 64)
 	}
 
 	strDef := strings.Fields(fightstats.Find("li:nth-child(4)").Text())
@@ -126,7 +129,7 @@ func parseFighterDetail(e *colly.HTMLElement) models.Fighter {
 	substats := e.DOM.Parent().Find("div.b-list__info-box-right.b-list__info-box_style-margin-right ul.b-list__box-list")
 	tdAvg := strings.Fields(substats.Find("li:nth-child(2)").Text())
 	if len(tdAvg) > 1 {
-		fighter.TdAvg, _ = strconv.ParseFloat(tdAvg[len(tdAvg)-1], 8)
+		fighter.TdAvg, _ = strconv.ParseFloat(tdAvg[len(tdAvg)-1], 64)
 	}
 	tdAcc := strings.Fields(substats.Find("li:nth-child(3)").Text())
 	if len(tdAcc) > 1 {
@@ -142,7 +145,7 @@ func parseFighterDetail(e *colly.HTMLElement) models.Fighter {
 
 	subAvg := strings.Fields(substats.Find("li:nth-child(5)").Text())
 	if len(subAvg) > 1 {
-		fighter.SubAvg, _ = strconv.ParseFloat(subAvg[len(subAvg)-1], 8)
+		fighter.SubAvg, _ = strconv.ParseFloat(subAvg[len(subAvg)-1], 64)
 	}
 	return fighter
 }

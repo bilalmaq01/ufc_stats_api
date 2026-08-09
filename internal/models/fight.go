@@ -10,20 +10,20 @@ type Event struct {
 	URL       string    `json:"url"`
 }
 type Fight struct {
-	ID          int    `json:"fight_id"`
-	EventID     int    `json:"event_id"`
-	Fighter1ID  int    `json:"fighter1_id"`
-	Fighter2ID  int    `json:"fighter2_id"`
-	WinnerID    *int   `json:"winner"`
-	WeightClass string `json:"weight_class"`
-	Method      string `json:"method"`
-	Round       int    `json:"round"`
-	Time        string `json:"time"`
-	TimeFormat  string `json:"time_format"`
-	Referee     string `json:"referee"`
-	Details     string `json:"details"`
-	IsTitle     bool   `json:"is_title"`
-	URL         string `json:"url"`
+	ID          int     `json:"fight_id"`
+	EventID     int     `json:"event_id"`
+	Fighter1ID  int     `json:"fighter1_id"`
+	Fighter2ID  int     `json:"fighter2_id"`
+	WinnerID    *int    `json:"winner"`
+	WeightClass string  `json:"weight_class"`
+	Method      string  `json:"method"`
+	Round       int     `json:"round"`
+	Time        string  `json:"time"`
+	TimeFormat  string  `json:"time_format"`
+	Referee     string  `json:"referee"`
+	Details     *string `json:"details"`
+	IsTitle     bool    `json:"is_title"`
+	URL         string  `json:"url"`
 }
 
 type FightStats struct {
