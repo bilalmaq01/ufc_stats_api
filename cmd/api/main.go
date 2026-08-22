@@ -28,6 +28,8 @@ func main() {
 	mux.HandleFunc("/fighters", handlers.GetAllFighters(pool))
 	mux.HandleFunc("/fighters/search", handlers.SearchFightersByName(pool))
 	mux.HandleFunc("/events", handlers.GetAllEvents(pool))
+	mux.HandleFunc("/events/{id}/fights", handlers.GetFightsByEventID(pool))
+	mux.HandleFunc("/fighters/{id}/fights", handlers.GetFightsByFighterID(pool))
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
 
 }

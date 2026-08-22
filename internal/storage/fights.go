@@ -37,3 +37,47 @@ func InsertFight(pool *pgxpool.Pool, f *models.Fight) error {
 	}
 	return nil
 }
+
+func GetFightsByEventID(pool *pgxpool.Pool, eventID int) ([]models.Fight, error) {
+	ctx := context.Background()
+	rows, err := pool.Query(ctx, "SELECT id, event_id, fighter1_id, fighter2_id, winner_id, weight_class, method, round, time, time_format, referee,details, is_title, url FROM fights WHERE event_id = $1", eventID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	fights := []models.Fight{}
+	for rows.Next() {
+		var f models.Fight
+		err := rows.Scan(&f.ID, &f.EventID, &f.Fighter1ID, &f.Fighter2ID, &f.WinnerID, &f.WeightClass, &f.Method, &f.Round, &f.Time, &f.TimeFormat, &f.Referee, &f.Details, &f.IsTitle, &f.URL)
+		if err != nil {
+			return nil, err
+		}
+		fights = append(fights, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return fights, nil
+}
+
+func GetFightsByFighterID(pool *pgxpool.Pool, fighterID int) ([]models.Fight, error) {
+	ctx := context.Background()
+	rows, err := pool.Query(ctx, "SELECT id, event_id, fighter1_id, fighter2_id, winner_id, weight_class, method, round, time, time_format, referee,details, is_title, url FROM fights WHERE fighter1_id = $1 OR fighter2_id = $1", fighterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	fights := []models.Fight{}
+	for rows.Next() {
+		var f models.Fight
+		err := rows.Scan(&f.ID, &f.EventID, &f.Fighter1ID, &f.Fighter2ID, &f.WinnerID, &f.WeightClass, &f.Method, &f.Round, &f.Time, &f.TimeFormat, &f.Referee, &f.Details, &f.IsTitle, &f.URL)
+		if err != nil {
+			return nil, err
+		}
+		fights = append(fights, f)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return fights, nil
+}
