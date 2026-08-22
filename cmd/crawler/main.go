@@ -31,5 +31,5 @@ func main() {
 		r.Headers.Set("Cookie", cfg.Cookie)
 		r.Headers.Set("Upgrade-Insecure-Requests", "1")
 	})
-	crawler.EventCrawler(c, pool)
+	crawler.FightCrawler(c, pool)
 }

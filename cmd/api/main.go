@@ -27,7 +27,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/fighters", handlers.GetAllFighters(pool))
 	mux.HandleFunc("/fighters/search", handlers.SearchFightersByName(pool))
-
+	mux.HandleFunc("/events", handlers.GetAllEvents(pool))
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, mux))
 
 }

@@ -14,7 +14,7 @@ type Fight struct {
 	EventID     int     `json:"event_id"`
 	Fighter1ID  int     `json:"fighter1_id"`
 	Fighter2ID  int     `json:"fighter2_id"`
-	WinnerID    *int    `json:"winner"`
+	WinnerID    *int    `json:"winner_id"`
 	WeightClass string  `json:"weight_class"`
 	Method      string  `json:"method"`
 	Round       int     `json:"round"`
